@@ -3,245 +3,322 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Pingvin Muzeyi 🐧</title>
+  <title>3D Muzeycha 🐧</title>
   <script src="https://telegram.org"></script>
+  <script src="https://cloudflare.com"></script>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-    body {
-      background: #1a1a2e;
-      color: #fff;
-      font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-      height: 100vh;
-      overflow: hidden;
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+    body { overflow: hidden; background: #0d0a08; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
+    canvas { display: block; width: 100vw; height: 100vh; }
+
+    /* Tepada tugmalar */
+    .top-bar {
+      position: fixed; top: 15px; left: 15px; right: 15px;
+      display: flex; justify-content: space-between; align-items: center; z-index: 10;
     }
-    header {
-      padding: 10px;
-      text-align: center;
-      font-size: 16px;
-      background: #16213e;
-      width: 100%;
-      border-bottom: 2px solid #0f3460;
+    .pill-btn {
+      background: rgba(255, 255, 255, 0.9); color: #111; border: none;
+      padding: 10px 16px; border-radius: 25px; font-weight: 600; font-size: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.4); cursor: pointer;
     }
-    #museum {
-      position: relative;
-      width: 95vw;
-      max-width: 400px;
-      height: 55vh;
-      background: #e2d1c3;
-      border: 8px solid #5c3a21;
-      border-radius: 10px;
-      overflow: hidden;
-      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    .share-btn { background: #d64550; color: #fff; }
+
+    /* Pastki chap sanagich */
+    .counter {
+      position: fixed; bottom: 25px; left: 20px;
+      background: rgba(255,255,255,0.9); color: #111;
+      padding: 8px 14px; border-radius: 20px; font-weight: bold; font-size: 14px; z-index: 10;
     }
-    .wall {
-      position: absolute;
-      top: 0;
-      width: 100%;
-      height: 110px;
-      background: #fdf6e3;
-      border-bottom: 4px solid #b58900;
-      display: flex;
-      justify-content: space-around;
-      align-items: center;
-      padding: 0 10px;
+
+    /* Joystik (O'ng pastda) */
+    #joystick-zone {
+      position: fixed; bottom: 25px; right: 25px;
+      width: 110px; height: 110px;
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-radius: 50%; z-index: 20; touch-action: none;
     }
-    .frame {
-      width: 70px;
-      height: 70px;
-      border: 4px solid #d4af37;
-      background: #333;
-      box-shadow: 0 4px 8px rgba(0,0,0,0.3);
-      overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 10px;
-      color: #aaa;
-      transition: transform 0.2s;
+    #joystick-knob {
+      position: absolute; top: 30px; left: 30px;
+      width: 46px; height: 46px;
+      background: #ffffff; border-radius: 50%;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
     }
-    .frame.active {
-      transform: scale(1.15);
-      border-color: #ff4757;
-      box-shadow: 0 0 15px #ff4757;
+
+    /* Sozlamalar oynasi */
+    #settings-modal {
+      display: none; position: fixed; bottom: 0; left: 0; right: 0;
+      background: #faf6f0; color: #111; border-radius: 24px 24px 0 0;
+      padding: 20px; z-index: 50; box-shadow: 0 -10px 30px rgba(0,0,0,0.6);
     }
-    .frame img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
+    .theme-grid { display: flex; gap: 10px; margin: 15px 0; }
+    .theme-card {
+      flex: 1; padding: 12px; border-radius: 14px; border: 2px solid #ddd;
+      text-align: center; font-weight: bold; cursor: pointer;
     }
-    #penguin {
-      position: absolute;
-      width: 45px;
-      height: 45px;
-      font-size: 38px;
-      line-height: 45px;
-      text-align: center;
-      left: 160px;
-      top: 220px;
-      transition: transform 0.1s;
-      z-index: 10;
-    }
-    #view-btn {
-      position: absolute;
-      bottom: 15px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: #ff4757;
-      color: white;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 20px;
-      font-weight: bold;
-      display: none;
-      z-index: 20;
-      box-shadow: 0 4px 10px rgba(0,0,0,0.4);
-    }
-    .controls {
-      display: grid;
-      grid-template-columns: repeat(3, 65px);
-      grid-template-rows: repeat(2, 65px);
-      gap: 8px;
-      margin-bottom: 15px;
-    }
-    .btn {
-      background: #0f3460;
-      border: 2px solid #e94560;
-      color: white;
-      font-size: 24px;
-      border-radius: 15px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      active: background #e94560;
-    }
-    .btn:active { background: #e94560; }
-    #modal {
-      display: none;
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.9);
-      z-index: 100;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      padding: 20px;
-    }
-    #modal img {
-      max-width: 90%;
-      max-height: 70%;
-      border: 5px solid #d4af37;
-      border-radius: 8px;
-    }
-    #close-modal {
-      margin-top: 20px;
-      padding: 10px 25px;
-      background: #e94560;
-      color: white;
-      border: none;
-      border-radius: 8px;
-      font-size: 16px;
+    .theme-card.active { border-color: #d64550; background: #fff0f1; }
+    .done-btn {
+      width: 100%; padding: 14px; background: #1c1917; color: #fff;
+      border: none; border-radius: 25px; font-size: 16px; font-weight: bold;
     }
   </style>
 </head>
 <body>
 
-  <header>🏛 Pingvin Virtual Muzeyi</header>
+  <div class="top-bar">
+    <button class="pill-btn" onclick="toggleSettings()">✏️ Muzeyni o'zgartirish</button>
+    <button class="pill-btn share-btn" onclick="shareMuseum()">📤 Ulashish</button>
+  </div>
 
-  <div id="museum">
-    <div class="wall" id="wall">
-      <div class="frame" id="f0">Bo'sh</div>
-      <div class="frame" id="f1">Bo'sh</div>
-      <div class="frame" id="f2">Bo'sh</div>
-      <div class="frame" id="f3">Bo'sh</div>
+  <div class="counter" id="counter">👁 0 / 4</div>
+
+  <div id="joystick-zone">
+    <div id="joystick-knob"></div>
+  </div>
+
+  <div id="settings-modal">
+    <h3>Muzey ko'rinishi</h3>
+    <div class="theme-grid">
+      <div class="theme-card active" id="t-dark" onclick="setTheme('dark')">🌙 Qorong'i</div>
+      <div class="theme-card" id="t-light" onclick="setTheme('light')">☀️ Yorug'</div>
+      <div class="theme-card" id="t-love" onclick="setTheme('love')">❤️ Marry me</div>
     </div>
-    <div id="penguin">🐧</div>
-    <button id="view-btn" onclick="openPhoto()">👁 Rasmni ko'rish</button>
-  </div>
-
-  <div class="controls">
-    <div></div>
-    <div class="btn" ontouchstart="move(0, -20)" onclick="move(0, -20)">⬆️</div>
-    <div></div>
-    <div class="btn" ontouchstart="move(-20, 0)" onclick="move(-20, 0)">⬅️</div>
-    <div class="btn" ontouchstart="move(0, 20)" onclick="move(0, 20)">⬇️</div>
-    <div class="btn" ontouchstart="move(20, 0)" onclick="move(20, 0)">➡️</div>
-  </div>
-
-  <div id="modal">
-    <img id="modal-img" src="" alt="Eksponat">
-    <button id="close-modal" onclick="closePhoto()">Yopish ✖</button>
+    <button class="done-btn" onclick="toggleSettings()">O'zgarish tayyor</button>
   </div>
 
   <script>
     const tg = window.Telegram.WebApp;
     tg.expand();
 
-    // URL dan rasmlarni o'qish
+    // URL dan rasmlarni olish
     const params = new URLSearchParams(window.location.search);
-    const photosParam = params.get('imgs');
     let photos = [];
-    if (photosParam) {
-      try {
-        photos = JSON.parse(decodeURIComponent(photosParam));
-      } catch (e) { console.error(e); }
-    }
+    try {
+      if (params.get('imgs')) photos = JSON.parse(decodeURIComponent(params.get('imgs')));
+    } catch (e) {}
 
-    // Ramkalarga rasmlarni joylash
-    photos.forEach((url, index) => {
-      if (index < 4) {
-        const frame = document.getElementById('f' + index);
-        frame.innerHTML = `<img src="${url}">`;
+    // 3D Sahna
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0f0b08);
+    scene.fog = new THREE.Fog(0x0f0b08, 10, 35);
+
+    const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100);
+    const renderer = new THREE.WebGLRenderer({ antialias: true });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    document.body.appendChild(renderer.domElement);
+
+    // Yoritish
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.35);
+    scene.add(ambientLight);
+
+    // Pol va Devorlar
+    const floorMat = new THREE.MeshStandardMaterial({ color: 0x1f1812, roughness: 0.4 });
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(24, 30), floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    scene.add(floor);
+
+    const wallMat = new THREE.MeshStandardMaterial({ color: 0x1a1410, roughness: 0.8 });
+    const backWall = new THREE.Mesh(new THREE.BoxGeometry(24, 8, 0.5), wallMat);
+    backWall.position.set(0, 4, -12);
+    scene.add(backWall);
+
+    const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.5, 8, 30), wallMat);
+    leftWall.position.set(-12, 4, 0);
+    scene.add(leftWall);
+
+    const rightWall = new THREE.Mesh(new THREE.BoxGeometry(0.5, 8, 30), wallMat);
+    rightWall.position.set(12, 4, 0);
+    scene.add(rightWall);
+
+    // 3D Pingvin yasash
+    const penguin = new THREE.Group();
+    const blackMat = new THREE.MeshStandardMaterial({ color: 0x18181b, roughness: 0.6 });
+    const whiteMat = new THREE.MeshStandardMaterial({ color: 0xfafaf9, roughness: 0.5 });
+    const orangeMat = new THREE.MeshStandardMaterial({ color: 0xf97316, roughness: 0.4 });
+
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.65, 24, 24), blackMat);
+    body.scale.set(1, 1.35, 0.9);
+    body.position.y = 0.95;
+    penguin.add(body);
+
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.55, 24, 24), whiteMat);
+    belly.scale.set(0.9, 1.2, 0.5);
+    belly.position.set(0, 0.9, 0.35);
+    penguin.add(belly);
+
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 24, 24), blackMat);
+    head.position.set(0, 1.95, 0.05);
+    penguin.add(head);
+
+    const beak = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.35, 16), orangeMat);
+    beak.rotation.x = Math.PI / 2;
+    beak.position.set(0, 1.9, 0.55);
+    penguin.add(beak);
+
+    const footL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.1, 0.4), orangeMat);
+    footL.position.set(-0.25, 0.05, 0.15);
+    const footR = footL.clone();
+    footR.position.set(0.25, 0.05, 0.15);
+    penguin.add(footL, footR);
+
+    // Qanotlar
+    const wingL = new THREE.Mesh(new THREE.SphereGeometry(0.18, 16, 16), blackMat);
+    wingL.scale.set(0.4, 1.8, 0.8);
+    wingL.position.set(-0.68, 1.1, 0);
+    wingL.rotation.z = 0.25;
+    const wingR = wingL.clone();
+    wingR.position.set(0.68, 1.1, 0);
+    wingR.rotation.z = -0.25;
+    penguin.add(wingL, wingR);
+
+    penguin.position.set(0, 0, 5);
+    penguin.rotation.y = Math.PI;
+    scene.add(penguin);
+
+    // Rasmlar ramkalari va Spotlight nurlari
+    const framePositions = [
+      { x: -4.5, y: 2.8, z: -11.6, ry: 0 },
+      { x: 4.5,  y: 2.8, z: -11.6, ry: 0 },
+      { x: -11.6, y: 2.8, z: -4, ry: Math.PI / 2 },
+      { x: 11.6,  y: 2.8, z: -4, ry: -Math.PI / 2 }
+    ];
+
+    const loader = new THREE.TextureLoader();
+    loader.setCrossOrigin('anonymous');
+    const viewed = new Set();
+
+    framePositions.forEach((pos, idx) => {
+      const group = new THREE.Group();
+      const border = new THREE.Mesh(
+        new THREE.BoxGeometry(2.6, 3.4, 0.15),
+        new THREE.MeshStandardMaterial({ color: 0x0a0a0a })
+      );
+      group.add(border);
+
+      const artMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
+      if (photos[idx]) {
+        loader.load(photos[idx], (tex) => {
+          artMat.color.setHex(0xffffff);
+          artMat.map = tex;
+          artMat.needsUpdate = true;
+        });
       }
+      const art = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 3.1), artMat);
+      art.position.z = 0.09;
+      group.add(art);
+
+      group.position.set(pos.x, pos.y, pos.z);
+      group.rotation.y = pos.ry;
+      scene.add(group);
+
+      const spot = new THREE.SpotLight(0xffe4b5, 2.2, 15, Math.PI / 5, 0.5);
+      spot.position.set(pos.x * 0.8, 6.5, pos.z * 0.8);
+      spot.target = group;
+      scene.add(spot);
     });
 
-    const penguin = document.getElementById('penguin');
-    const museum = document.getElementById('museum');
-    const viewBtn = document.getElementById('view-btn');
-    let px = 160, py = 200;
-    let activePhoto = null;
+    // Joystik boshqaruvi
+    const zone = document.getElementById('joystick-zone');
+    const knob = document.getElementById('joystick-knob');
+    let joyX = 0, joyY = 0, dragging = false;
 
-    function move(dx, dy) {
-      const maxX = museum.clientWidth - 55;
-      const maxY = museum.clientHeight - 55;
-      px = Math.max(5, Math.min(maxX, px + dx));
-      py = Math.max(95, Math.min(maxY, py + dy));
-      penguin.style.left = px + 'px';
-      penguin.style.top = py + 'px';
-      if (dx < 0) penguin.style.transform = 'scaleX(-1)';
-      if (dx > 0) penguin.style.transform = 'scaleX(1)';
-      checkFrames();
+    zone.addEventListener('touchstart', (e) => { dragging = true; updateJoy(e.touches[0]); });
+    zone.addEventListener('touchmove', (e) => { if (dragging) { e.preventDefault(); updateJoy(e.touches[0]); } });
+    zone.addEventListener('touchend', () => {
+      dragging = false; joyX = 0; joyY = 0;
+      knob.style.transform = `translate(0px, 0px)`;
+    });
+
+    function updateJoy(touch) {
+      const rect = zone.getBoundingClientRect();
+      const cx = rect.left + rect.width / 2;
+      const cy = rect.top + rect.height / 2;
+      let dx = touch.clientX - cx;
+      let dy = touch.clientY - cy;
+      const dist = Math.min(35, Math.hypot(dx, dy));
+      const angle = Math.atan2(dy, dx);
+      joyX = (Math.cos(angle) * dist) / 35;
+      joyY = (Math.sin(angle) * dist) / 35;
+      knob.style.transform = `translate(${Math.cos(angle)*dist}px, ${Math.sin(angle)*dist}px)`;
     }
 
-    function checkFrames() {
-      activePhoto = null;
-      viewBtn.style.display = 'none';
-      for (let i = 0; i < 4; i++) {
-        const frame = document.getElementById('f' + i);
-        frame.classList.remove('active');
-        const fCenter = frame.offsetLeft + frame.offsetWidth / 2;
-        const pCenter = px + 22;
-        if (py < 130 && Math.abs(fCenter - pCenter) < 35 && photos[i]) {
-          frame.classList.add('active');
-          activePhoto = photos[i];
-          viewBtn.style.display = 'block';
-        }
-      }
+    function toggleSettings() {
+      const m = document.getElementById('settings-modal');
+      m.style.display = m.style.display === 'block' ? 'none' : 'block';
     }
 
-    function openPhoto() {
-      if (activePhoto) {
-        document.getElementById('modal-img').src = activePhoto;
-        document.getElementById('modal').style.display = 'flex';
-      }
-    }
+    function setTheme(type) {
+      document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active'));
+      document.getElementById('t-' + type).classList.add('active');
+      if (type === 'dark') {
+        scene.background.setHex(0x0f0b08); scene.fog.color.setHex(0x0f0b08);
+        wallMat.color.setHex(0x1a1410); floorMat.color.setHex(0x1f1812); ambientLight.intensity = 0.35;
+      } else if (type === 'light') {
+        scene.background.setHex(0xf5f5f4); scene.fog.color.setHex(0xf5f5f4);
+        wallMat.color.setHex(0xffffff); floorMat.color.setHex(0xe7e5e4); ambientLight.intensity = 0.85;
+    const penguin = new THREE.Group();
+    const blackMat = new THREE.MeshStandardMaterial({ color: 0x18181b });
+    const whiteMat = new THREE.MeshStandardMaterial({ color: 0xfafaf9 });
+    const orangeMat = new THREE.MeshStandardMaterial({ color: 0xf97316 });
+    const body = new THREE.Mesh(new THREE.SphereGeometry(0.65, 24, 24), blackMat); body.scale.set(1, 1.35, 0.9); body.position.y = 0.95; penguin.add(body);
+    const belly = new THREE.Mesh(new THREE.SphereGeometry(0.55, 24, 24), whiteMat); belly.scale.set(0.9, 1.2, 0.5); belly.position.set(0, 0.9, 0.35); penguin.add(belly);
+    const head = new THREE.Mesh(new THREE.SphereGeometry(0.48, 24, 24), blackMat); head.position.set(0, 1.95, 0.05); penguin.add(head);
+    const beak = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.35, 16), orangeMat); beak.rotation.x = Math.PI / 2; beak.position.set(0, 1.9, 0.55); penguin.add(beak);
+    const footL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.1, 0.4), orangeMat); footL.position.set(-0.25, 0.05, 0.15);
+    const footR = footL.clone(); footR.position.set(0.25, 0.05, 0.15); penguin.add(footL, footR);
+    penguin.position.set(0, 0, 5); penguin.rotation.y = Math.PI; scene.add(penguin);
 
-    function closePhoto() {
-      document.getElementById('modal').style.display = 'none';
+    const framePositions = [
+      { x: -4.5, y: 2.8, z: -11.6, ry: 0 }, { x: 4.5, y: 2.8, z: -11.6, ry: 0 },
+      { x: -11.6, y: 2.8, z: -4, ry: Math.PI / 2 }, { x: 11.6, y: 2.8, z: -4, ry: -Math.PI / 2 }
+    ];
+    const loader = new THREE.TextureLoader(); loader.setCrossOrigin('anonymous'); const viewed = new Set();
+    framePositions.forEach((pos, idx) => {
+      const group = new THREE.Group();
+      group.add(new THREE.Mesh(new THREE.BoxGeometry(2.6, 3.4, 0.15), new THREE.MeshStandardMaterial({ color: 0x0a0a0a })));
+      const artMat = new THREE.MeshBasicMaterial({ color: 0x333333 });
+      if (photos[idx]) loader.load(photos[idx], (tex) => { artMat.color.setHex(0xffffff); artMat.map = tex; artMat.needsUpdate = true; });
+      const art = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 3.1), artMat); art.position.z = 0.09; group.add(art);
+      group.position.set(pos.x, pos.y, pos.z); group.rotation.y = pos.ry; scene.add(group);
+      const spot = new THREE.SpotLight(0xffe4b5, 2.2, 15, Math.PI / 5, 0.5); spot.position.set(pos.x * 0.8, 6.5, pos.z * 0.8); spot.target = group; scene.add(spot);
+    });
+
+    const zone = document.getElementById('joystick-zone'), knob = document.getElementById('joystick-knob');
+    let joyX = 0, joyY = 0, dragging = false;
+    zone.addEventListener('touchstart', (e) => { dragging = true; updateJoy(e.touches); });
+    zone.addEventListener('touchmove', (e) => { if (dragging) { e.preventDefault(); updateJoy(e.touches); } });
+    zone.addEventListener('touchend', () => { dragging = false; joyX = 0; joyY = 0; knob.style.transform = 'translate(0px, 0px)'; });
+    function updateJoy(t) {
+      const r = zone.getBoundingClientRect(), dx = t.clientX - (r.left + r.width/2), dy = t.clientY - (r.top + r.height/2);
+      const dist = Math.min(35, Math.hypot(dx, dy)), a = Math.atan2(dy, dx);
+      joyX = (Math.cos(a) * dist) / 35; joyY = (Math.sin(a) * dist) / 35;
+      knob.style.transform = `translate(${Math.cos(a)*dist}px, ${Math.sin(a)*dist}px)`;
     }
+    function toggleSettings() { const m = document.getElementById('settings-modal'); m.style.display = m.style.display === 'block' ? 'none' : 'block'; }
+    function setTheme(t) {
+      document.querySelectorAll('.theme-card').forEach(c => c.classList.remove('active')); document.getElementById('t-' + t).classList.add('active');
+      if (t === 'dark') { scene.background.setHex(0x0f0b08); wallMat.color.setHex(0x1a1410); floorMat.color.setHex(0x1f1812); ambientLight.intensity = 0.35; }
+      if (t === 'light') { scene.background.setHex(0xf5f5f4); wallMat.color.setHex(0xffffff); floorMat.color.setHex(0xe7e5e4); ambientLight.intensity = 0.85; }
+      if (t === 'love') { scene.background.setHex(0x3b0a18); wallMat.color.setHex(0x590d22); floorMat.color.setHex(0x800f2f); ambientLight.intensity = 0.6; }
+    }
+    function shareMuseum() { navigator.share ? navigator.share({ url: window.location.href }) : alert('Havola nusxalandi!'); }
+
+    let step = 0;
+    function animate() {
+      requestAnimationFrame(animate);
+      if (Math.abs(joyX) > 0.05 || Math.abs(joyY) > 0.05) {
+        penguin.position.x = Math.max(-10, Math.min(10, penguin.position.x + joyX * 0.12));
+        penguin.position.z = Math.max(-10, Math.min(11, penguin.position.z + joyY * 0.12));
+        penguin.rotation.y = Math.atan2(joyX, joyY);
+        step += 0.25; penguin.rotation.z = Math.sin(step) * 0.12; penguin.position.y = Math.abs(Math.cos(step)) * 0.08;
+      } else { penguin.rotation.z = 0; penguin.position.y = 0; }
+      camera.position.x += (penguin.position.x - camera.position.x) * 0.1; camera.position.y = 3.2; camera.position.z += (penguin.position.z + 5.2 - camera.position.z) * 0.1;
+      camera.lookAt(penguin.position.x, 1.8, penguin.position.z - 2);
+      framePositions.forEach((p, i) => { if (Math.hypot(penguin.position.x - p.x, penguin.position.z - p.z) < 4.5 && photos[i]) { viewed.add(i); document.getElementById('counter').innerText = `👁 ${viewed.size} / ${Math.min(4, photos.length)}`; } });
+      renderer.render(scene, camera);
+    }
+    animate();
   </script>
 </body>
 </html>
